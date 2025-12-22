@@ -12,8 +12,9 @@ char pass[] = "kienhieu";
 
 // Khai báo chân
 const int MQ2_PIN = 34;    // AO của MQ2 nối vào GPIO34
-const int GREEN_LED = 22;  // LED xanh nối GPIO22
-const int RED_LED = 23;    // LED đỏ nối GPIO23
+const int GREEN_LED = 18;   // LED xanh → D19
+const int RED_LED   = 19;   // LED đỏ → D18
+
 
 // Ngưỡng khí gas
 const int GAS_THRESHOLD = 500;
