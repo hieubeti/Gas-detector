@@ -7,8 +7,8 @@
 #include <BlynkSimpleEsp32.h>
 
 // ===== WIFI =====
-char ssid[] = "hieubinh";
-char pass[] = "kienhieu";
+char ssid[] = "hieu";
+char pass[] = "190402005";
 
 // ===== CHÂN =====
 const int MQ2_PIN   = 34;   // AO MQ-2
