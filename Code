@@ -1,90 +1,75 @@
 #define BLYNK_TEMPLATE_ID "TMPL68VT6L-R8"
 #define BLYNK_TEMPLATE_NAME "MQ2"
-#define BLYNK_AUTH_TOKEN "47fHh4sYkhSMmkJOk7I1d8e731eOK6I0" // Đã sửa token (xóa khoảng trắng đầu dòng)
+#define BLYNK_AUTH_TOKEN "47fHh4sYkhSMmkJOk7I1d8e731eOK6I0"
 
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
 
-// Thông tin WiFi
+// ===== WIFI =====
 char ssid[] = "hieubinh";
 char pass[] = "kienhieu";
 
-// Khai báo chân
-const int MQ2_PIN = 34;    // AO của MQ2 nối vào GPIO34
-const int GREEN_LED = 18;   // LED xanh → D19
-const int RED_LED   = 19;   // LED đỏ → D18
+// ===== CHÂN =====
+const int MQ2_PIN   = 34;   // AO MQ-2
+const int GREEN_LED = 18;   // LED xanh
+const int RED_LED   = 19;   // LED đỏ
+const int BUZZER    = 21;   // Còi
 
-
-// Ngưỡng khí gas
-const int GAS_THRESHOLD = 500;
+// ===== NGƯỠNG (RẤT NHẠY) =====
+const int GAS_THRESHOLD = 15;
 
 BlynkTimer timer;
 
-// Hàm đồng bộ trạng thái khi kết nối
-BLYNK_CONNECTED() {
-  Blynk.syncVirtual(V1); // Đồng bộ LED xanh
-  Blynk.syncVirtual(V2); // Đồng bộ LED đỏ
-}
-
-BLYNK_WRITE(V1) { // Xử lý khi bật/tắt LED xanh ảo
-  int value = param.asInt();
-  digitalWrite(GREEN_LED, value);
-  Serial.print("LED xanh thay đổi: ");
-  Serial.println(value);
-}
-
-BLYNK_WRITE(V2) { // Xử lý khi bật/tắt LED đỏ ảo
-  int value = param.asInt();
-  digitalWrite(RED_LED, value);
-  Serial.print("LED đỏ thay đổi: ");
-  Serial.println(value);
-}
-
-// Hàm gửi dữ liệu cảm biến lên Blynk
+// ===== ĐỌC CẢM BIẾN =====
 void sendSensorData() {
-  // Đọc giá trị cảm biến
   int gasValue = analogRead(MQ2_PIN);
-  
-  // Gửi giá trị đến Virtual Pin V0 (Gauge)
+
+  // Gửi lên Blynk (Gauge V0)
   Blynk.virtualWrite(V0, gasValue);
-  
-  // Tự động điều khiển LED theo ngưỡng
-  if (gasValue < GAS_THRESHOLD) {
-    digitalWrite(GREEN_LED, HIGH);
-    digitalWrite(RED_LED, LOW);
-  } else {
+
+  // ===== LOGIC CẢNH BÁO =====
+  if (gasValue >= GAS_THRESHOLD) {
     digitalWrite(GREEN_LED, LOW);
     digitalWrite(RED_LED, HIGH);
+    digitalWrite(BUZZER, HIGH);
+  } else {
+    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(RED_LED, LOW);
+    digitalWrite(BUZZER, LOW);
   }
-  
-  // Đồng bộ trạng thái LED ảo (quan trọng)
-  Blynk.virtualWrite(V1, digitalRead(GREEN_LED));
-  Blynk.virtualWrite(V2, digitalRead(RED_LED));
-  
-  // Debug trên Serial
+
+  // Debug Serial
   Serial.print("Gas: ");
   Serial.print(gasValue);
-  Serial.print(" | LED xanh: ");
+  Serial.print(" | Green: ");
   Serial.print(digitalRead(GREEN_LED));
-  Serial.print(" | LED đỏ: ");
-  Serial.println(digitalRead(RED_LED));
+  Serial.print(" | Red: ");
+  Serial.print(digitalRead(RED_LED));
+  Serial.print(" | Buzzer: ");
+  Serial.println(digitalRead(BUZZER));
 }
 
 void setup() {
-  // Khởi tạo Serial
   Serial.begin(115200);
-  
-  // Thiết lập chân LED
+
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
-  digitalWrite(GREEN_LED, HIGH); // Ban đầu bật LED xanh
+  pinMode(BUZZER, OUTPUT);
+
+  // Trạng thái ban đầu
+  digitalWrite(GREEN_LED, HIGH);
   digitalWrite(RED_LED, LOW);
-  
-  // Kết nối Blynk
+  digitalWrite(BUZZER, LOW);
+
+  // ADC ESP32
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+
+  // Blynk
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-  
-  // Thiết lập hàm gửi dữ liệu mỗi 1 giây
+
+  // Đọc cảm biến mỗi 1 giây
   timer.setInterval(1000L, sendSensorData);
 }
 
