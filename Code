@@ -1,14 +1,14 @@
-#define BLYNK_TEMPLATE_ID "TMPL6y_PmF6d6"
-#define BLYNK_TEMPLATE_NAME "Smoke Sensor"
-#define BLYNK_AUTH_TOKEN "ifItvzJgZltuyngt9K4_5llUq21j-uMk" // Đã sửa token (xóa khoảng trắng đầu dòng)
+#define BLYNK_TEMPLATE_ID "TMPL68VT6L-R8"
+#define BLYNK_TEMPLATE_NAME "MQ2"
+#define BLYNK_AUTH_TOKEN "47fHh4sYkhSMmkJOk7I1d8e731eOK6I0" // Đã sửa token (xóa khoảng trắng đầu dòng)
 
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
 
 // Thông tin WiFi
-char ssid[] = "hieu";
-char pass[] = "19042005";
+char ssid[] = "hieubinh";
+char pass[] = "kienhieu";
 
 // Khai báo chân
 const int MQ2_PIN = 34;    // AO của MQ2 nối vào GPIO34
