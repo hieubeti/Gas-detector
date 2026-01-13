@@ -7,36 +7,39 @@
 #include <BlynkSimpleEsp32.h>
 
 // ===== WIFI =====
-char ssid[] = "hieu";
-char pass[] = "190402005";
+char ssid[] = "hieubinh";
+char pass[] = "kienhieu";
 
 // ===== CHÂN =====
-const int MQ2_PIN   = 34;   // AO MQ-2
-const int GREEN_LED = 18;   // LED xanh
-const int RED_LED   = 19;   // LED đỏ
-const int BUZZER    = 21;   // Còi
+const int MQ2_PIN   = 34;
+const int GREEN_LED = 18;
+const int RED_LED   = 19;
+const int BUZZER    = 21;
 
 // ===== NGƯỠNG =====
-const int GAS_THRESHOLD = 15;
+const int GAS_THRESHOLD = 50;
 
-// ===== BIẾN ĐIỀU KHIỂN CÒI =====
-bool buzzerEnable = true;   // true = cho phép còi kêu
+// ===== BIẾN ĐIỀU KHIỂN =====
+bool buzzerEnable = true;     // Cho phép còi
+bool blynkOnline  = false;   // Trạng thái Blynk
 
 BlynkTimer timer;
 
-// ===== NHẬN LỆNH TỪ BLYNK (BUTTON V1) =====
+// ===== NÚT BLYNK V1 (BẬT/TẮT CÒI) =====
 BLYNK_WRITE(V1) {
-  buzzerEnable = param.asInt(); // 1 = bật còi, 0 = tắt còi
+  buzzerEnable = param.asInt();
 }
 
-// ===== ĐỌC CẢM BIẾN =====
-void sendSensorData() {
+// ===== ĐỌC MQ2 =====
+void readGasSensor() {
   int gasValue = analogRead(MQ2_PIN);
 
-  // Gửi giá trị lên Blynk
-  Blynk.virtualWrite(V0, gasValue);
+  // Gửi lên Blynk nếu ONLINE
+  if (blynkOnline) {
+    Blynk.virtualWrite(V0, gasValue);
+  }
 
-  // ===== LOGIC CẢNH BÁO =====
+  // ===== LOGIC OFFLINE / ONLINE =====
   if (gasValue >= GAS_THRESHOLD) {
     digitalWrite(GREEN_LED, LOW);
     digitalWrite(RED_LED, HIGH);
@@ -47,11 +50,31 @@ void sendSensorData() {
     digitalWrite(BUZZER, LOW);
   }
 
-  // Debug
   Serial.print("Gas: ");
   Serial.print(gasValue);
-  Serial.print(" | BuzzerEnable: ");
-  Serial.println(buzzerEnable);
+  Serial.print(" | WiFi: ");
+  Serial.print(WiFi.status() == WL_CONNECTED ? "OK" : "OFF");
+  Serial.print(" | Blynk: ");
+  Serial.println(blynkOnline ? "ON" : "OFF");
+}
+
+// ===== KẾT NỐI WIFI + BLYNK (KHÔNG BLOCK) =====
+void connectWiFiBlynk() {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin(ssid, pass);
+    Serial.println("Trying WiFi...");
+    return;
+  }
+
+  if (!Blynk.connected()) {
+    Blynk.config(BLYNK_AUTH_TOKEN);
+    if (Blynk.connect(1000)) {
+      blynkOnline = true;
+      Serial.println("Blynk connected");
+    } else {
+      blynkOnline = false;
+    }
+  }
 }
 
 void setup() {
@@ -61,23 +84,26 @@ void setup() {
   pinMode(RED_LED, OUTPUT);
   pinMode(BUZZER, OUTPUT);
 
-  // Trạng thái ban đầu
   digitalWrite(GREEN_LED, HIGH);
   digitalWrite(RED_LED, LOW);
   digitalWrite(BUZZER, LOW);
 
-  // ADC ESP32
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
 
-  // Kết nối Blynk
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
 
-  // Đọc cảm biến mỗi 1 giây
-  timer.setInterval(1000L, sendSensorData);
+  // Đọc MQ2 mỗi 1 giây (OFFLINE vẫn chạy)
+  timer.setInterval(1000L, readGasSensor);
+
+  // Thử kết nối WiFi + Blynk mỗi 5 giây
+  timer.setInterval(5000L, connectWiFiBlynk);
 }
 
 void loop() {
-  Blynk.run();
+  if (blynkOnline) {
+    Blynk.run();
+  }
   timer.run();
 }
